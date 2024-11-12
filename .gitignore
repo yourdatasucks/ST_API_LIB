@@ -1,0 +1,7 @@
+# Ignore Google Apps Script metadata
+.clasp.json
+# Ignore clasp build output and other temp files
+node_modules/
+dist/
+# Ignore environment-specific configurations (if any)
+.env
