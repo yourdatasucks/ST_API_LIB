@@ -1,9 +1,9 @@
 /**
  * Retrieves the session cookies from the library.
- * @public
+ * @private
  * @returns {string|null} - The session cookies or null if not logged in.
  */
-function getSessionCookies() {
+function _getSessionCookies() {
   return PropertiesService.getScriptProperties().getProperty("SESSION_COOKIES");
 }
 
@@ -34,8 +34,8 @@ function login(email, password, timeoutLength = 1, checkHourFreq = 1) {
     const sessionCookies = response.getAllHeaders()['Set-Cookie'];
     const scriptProps = PropertiesService.getScriptProperties();
     scriptProps.setProperty("SESSION_COOKIES", sessionCookies);
-    setSessionTimeout(timeoutLength);
-    createSessionCheckTrigger(checkHourFreq);
+    _setSessionTimeout(timeoutLength);
+    _createSessionCheckTrigger(checkHourFreq);
     return { success: true };
   } else {
     return { success: false, message: "Invalid login credentials" };
@@ -50,7 +50,7 @@ function login(email, password, timeoutLength = 1, checkHourFreq = 1) {
  */
 function logout() {
   const scriptProps = PropertiesService.getScriptProperties();
-  const sessionCookies = scriptProps.getProperty("SESSION_COOKIES");
+  const sessionCookies = _getSessionCookies();
 
   if (sessionCookies) {
     const logoutUrl = "https://api.servicetrade.com/api/auth"; // ServiceTrade logout endpoint
@@ -63,7 +63,7 @@ function logout() {
     const response = UrlFetchApp.fetch(logoutUrl, options);
     scriptProps.deleteProperty("SESSION_COOKIES");
     scriptProps.deleteProperty("SESSION_EXPIRATION");
-    deleteExistingTriggers("checkSessionStatus"); // Remove the trigger on logout
+    _deleteExistingTriggers("checkSessionStatus"); // Remove the trigger on logout
     return response.getResponseCode() === 204 ? "Logout successful" : "Logout failed";
   }
   return "No active session to log out from.";
@@ -71,10 +71,10 @@ function logout() {
 
 /**
  * Sets session expiration.
- * @public
+ * @private
  * @param {number} timeoutLength - Length of the session in hours.
  */
-function setSessionTimeout(timeoutLength) {
+function _setSessionTimeout(timeoutLength) {
   const scriptProps = PropertiesService.getScriptProperties();
   const expiration = new Date();
   expiration.setHours(expiration.getHours() + timeoutLength);
@@ -84,12 +84,12 @@ function setSessionTimeout(timeoutLength) {
 
 /**
  * Checks if the user is logged in and if the session is still active.
- * @public
+ * @private
  * @returns {boolean} - True if session is active; false if expired.
  */
-function isUserLoggedIn() {
+function _isUserLoggedIn() {
   const scriptProps = PropertiesService.getScriptProperties();
-  const sessionCookies = scriptProps.getProperty("SESSION_COOKIES");
+  const sessionCookies = _getSessionCookies();
   const expiration = scriptProps.getProperty("SESSION_EXPIRATION");
 
   if (!sessionCookies) return false;
@@ -107,13 +107,13 @@ function isUserLoggedIn() {
 /**
  * Creates a time-based trigger to periodically check the session.
  * Ensures there are no duplicate triggers for the session check function.
- * @public
+ * @private
  * @param {number} checkHourFreq - Frequency in hours for session status check.
  */
-function createSessionCheckTrigger(checkHourFreq) {
-  deleteExistingTriggers("sessionStatusDispatcher");
+function _createSessionCheckTrigger(checkHourFreq) {
+  _deleteExistingTriggers("_sessionStatusDispatcher");
 
-  ScriptApp.newTrigger("sessionStatusDispatcher")
+  ScriptApp.newTrigger("_sessionStatusDispatcher")
     .timeBased()
     .everyHours(checkHourFreq)
     .create();
@@ -125,7 +125,7 @@ function createSessionCheckTrigger(checkHourFreq) {
  * @private
  * @param {string} functionName - The function name to remove triggers for.
  */
-function deleteExistingTriggers(functionName) {
+function _deleteExistingTriggers(functionName) {
   const triggers = ScriptApp.getProjectTriggers();
   triggers.forEach(trigger => {
     if (trigger.getHandlerFunction() === functionName) {
@@ -139,7 +139,7 @@ function deleteExistingTriggers(functionName) {
  * Set as the trigger target and calls the internal session check.
  * @private
  */
-function sessionStatusDispatcher() {
+function _sessionStatusDispatcher() {
   _checkSessionStatus();
 }
 
@@ -204,7 +204,7 @@ function getCompanies({ type, ...params } = {}) {
   }
 
   // Merge type defaults with other parameters
-  const finalParams = { 
+  const finalParams = {
     ...typeParams,
     ...params
   };
