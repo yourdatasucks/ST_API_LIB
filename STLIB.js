@@ -225,7 +225,7 @@ function getCompanies({ type, ...params } = {}) {
   try {
     const response = UrlFetchApp.fetch(url, options);
     if (response.getResponseCode() === 200) {
-      return { success: true, data: JSON.parse(response.getContentText()) };
+      return { success: true, ...JSON.parse(response.getContentText()) };
     }
     return { success: false, message: `Failed to retrieve companies: ${response.getResponseCode()}` };
   } catch (error) {
