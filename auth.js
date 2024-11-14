@@ -62,28 +62,12 @@ function logout() {
     return "No active session to log out from.";
 }
 
-STLIB.login = login();
-STLIB.logout = logout();
-
-/**
-* Sets session expiration.
-* @private
-* @param {number} timeoutLength - Length of the session in hours.
-*/
-function _setSessionTimeout(timeoutLength) {
-    const scriptProps = PropertiesService.getScriptProperties();
-    const expiration = new Date();
-    expiration.setHours(expiration.getHours() + timeoutLength);
-    scriptProps.setProperty("SESSION_EXPIRATION", expiration.toISOString());
-}
-
-
 /**
  * Checks if the user is logged in and if the session is still active.
- * @private
+ * @public
  * @returns {boolean} - True if session is active; false if expired.
  */
-function _isUserLoggedIn() {
+function isUserLoggedIn() {
     const scriptProps = PropertiesService.getScriptProperties();
     const sessionCookies = _getSessionCookies();
     const expiration = scriptProps.getProperty("SESSION_EXPIRATION");
@@ -99,6 +83,25 @@ function _isUserLoggedIn() {
     }
     return true;
 }
+
+STLIB.login = login;
+STLIB.logout = logout;
+STLIB.isUserLoggedIn = isUserLoggedIn;
+
+/**
+* Sets session expiration.
+* @private
+* @param {number} timeoutLength - Length of the session in hours.
+*/
+function _setSessionTimeout(timeoutLength) {
+    const scriptProps = PropertiesService.getScriptProperties();
+    const expiration = new Date();
+    expiration.setHours(expiration.getHours() + timeoutLength);
+    scriptProps.setProperty("SESSION_EXPIRATION", expiration.toISOString());
+}
+
+
+
 
 /**
  * Creates a time-based trigger to periodically check the session.
