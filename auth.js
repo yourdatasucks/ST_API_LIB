@@ -56,7 +56,7 @@ function logout() {
         const response = UrlFetchApp.fetch(logoutUrl, options);
         scriptProps.deleteProperty("SESSION_COOKIES");
         scriptProps.deleteProperty("SESSION_EXPIRATION");
-        _deleteExistingTriggers("checkSessionStatus"); // Remove the trigger on logout
+        _deleteExistingTriggers("STLIB.internalSessionTriggerCheck"); // Remove the trigger on logout
         return response.getResponseCode() === 204 ? "Logout successful" : "Logout failed";
     }
     return "No active session to log out from.";
@@ -87,6 +87,8 @@ function isUserLoggedIn() {
 STLIB.login = login;
 STLIB.logout = logout;
 STLIB.isUserLoggedIn = isUserLoggedIn;
+STLIB.internalTriggerForSessionCheck = internalTriggerForSessionCheck;
+
 
 /**
 * Sets session expiration.
@@ -110,9 +112,9 @@ function _setSessionTimeout(timeoutLength) {
  * @param {number} checkHourFreq - Frequency in hours for session status check.
  */
 function _createSessionCheckTrigger(checkHourFreq) {
-    _deleteExistingTriggers("_sessionStatusDispatcher");
+    _deleteExistingTriggers("STLIB.internalSessionTriggerCheck");
 
-    ScriptApp.newTrigger("_sessionStatusDispatcher")
+    ScriptApp.newTrigger("STLIB.internalSessionTriggerCheck")
         .timeBased()
         .everyHours(checkHourFreq)
         .create();
@@ -133,21 +135,23 @@ function _deleteExistingTriggers(functionName) {
     });
 }
 
+
 /**
  * Dispatch function to check the session status.
  * Set as the trigger target and calls the internal session check.
- * @private
+ * @public (now exposed for trigger use)
  */
-function _sessionStatusDispatcher() {
-    _checkSessionStatus();
+function internalTriggerForSessionCheck() {
+    _checkSessionStatusInternal();
 }
 
 /**
  * Checks session status; logs out if the session has expired.
  * @private
  */
-function _checkSessionStatus() {
+function _checkSessionStatusInternal() {
     if (!isUserLoggedIn()) {
         Logger.log("User session has expired and has been logged out.");
+        logout();
     }
 }
