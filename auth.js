@@ -56,7 +56,7 @@ function logout() {
         const response = UrlFetchApp.fetch(logoutUrl, options);
         scriptProps.deleteProperty("SESSION_COOKIES");
         scriptProps.deleteProperty("SESSION_EXPIRATION");
-        _deleteExistingTriggers("STLIB.internalSessionTriggerCheck"); // Remove the trigger on logout
+        _deleteExistingTriggers("librarySessionCheckTrigger"); // Remove the trigger on logout
         return response.getResponseCode() === 204 ? "Logout successful" : "Logout failed";
     }
     return "No active session to log out from.";
@@ -98,7 +98,7 @@ STLIB.internalTriggerForSessionCheck = internalTriggerForSessionCheck;
 function _setSessionTimeout(timeoutLength) {
     const scriptProps = PropertiesService.getScriptProperties();
     const expiration = new Date();
-    expiration.setHours(expiration.getHours() + timeoutLength);
+    expiration.setMinutes(expiration.getMinutes() + timeoutLength * 60);
     scriptProps.setProperty("SESSION_EXPIRATION", expiration.toISOString());
 }
 
@@ -112,11 +112,11 @@ function _setSessionTimeout(timeoutLength) {
  * @param {number} checkHourFreq - Frequency in hours for session status check.
  */
 function _createSessionCheckTrigger(checkHourFreq) {
-    _deleteExistingTriggers("STLIB.internalSessionTriggerCheck");
+    _deleteExistingTriggers("librarySessionCheckTrigger");
 
-    ScriptApp.newTrigger("STLIB.internalSessionTriggerCheck")
+    ScriptApp.newTrigger("librarySessionCheckTrigger")
         .timeBased()
-        .everyHours(checkHourFreq)
+        .everyMinutes(checkHourFreq)
         .create();
 }
 
