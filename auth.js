@@ -9,7 +9,7 @@ var STLIB = STLIB || {};
  * @param {string} email - The email for ServiceTrade login.
  * @param {string} password - The password for ServiceTrade login.
  * @param {number} timeoutLength - Session length, interpreted based on `unit`.
- * @param {string} [unit='hours'] - The unit of `timeoutLength`, either 'hours' or 'minutes'.
+ * @param {string} unit - The unit of `timeoutLength`, either 'hours' or 'minutes'.
  * @returns {Object} - Success status and optional message on failure.
  * 
  * Examples:
