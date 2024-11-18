@@ -53,17 +53,28 @@ function librarySessionCheckTrigger() {
 - **Parameters**:
   - `email` (string): ServiceTrade account email.
   - `password` (string): Account password.
-  - `timeoutLength` (number, optional): Session duration in hours (default: 1).
-  - `checkHourFreq` (number, optional): Frequency (hours) for session checks.
+  - `timeoutLength` (number): Session length, interpreted based on the `unit` parameter.
+  - `unit` (string, optional): The unit of `timeoutLength`, either `'hours'` or `'minutes'`. Default is `'hours'`.
 - **Returns**: `{ success: boolean, message: string }`
+
+- **Note on allowed values:**
+    - If `unit` is `'hours'`, `timeoutLength` must be a positive whole number (e.g., 1, 2, etc.).
+    - If `unit` is `'minutes'`, `timeoutLength` must be one of the following values: 1, 5, 10, 15, or 30 minutes (these are the only intervals Google Apps Script supports for time-based triggers).
+
 - **Example**:
   ```javascript
+  // default behavior is set for one hour
   const response = login("user@example.com", "password123");
   if (response.success) {
     Logger.log("Login successful");
   } else {
     Logger.log(response.message);
   }
+  // Login with a 1-hour session timeout
+  const response = login("user@example.com", "password123", 1, 'hours');
+  
+  // Login with a 15-minute session timeout
+  const response = login("user@example.com", "password123", 15, 'minutes');
 ### logout
 - **Description**: Ends the session and clears stored session data.
 - **Returns**: A message indicating logout success or failure.
