@@ -2,18 +2,44 @@
 var STLIB = STLIB || {};
 
 /**
- * Logs in to ServiceTrade and stores only the PHPSESSID for session management.
- * @public
+ * Logs in to ServiceTrade and manages session with a specified timeout.
+ * - `timeoutLength` represents hours if `unit` is set to 'hours' (default).
+ * - `timeoutLength` represents minutes if `unit` is set to 'minutes', with only specific intervals allowed.
+ * 
  * @param {string} email - The email for ServiceTrade login.
  * @param {string} password - The password for ServiceTrade login.
- * @param {number} timeoutLength - Optional session length in hours (default is 1).
- * @param {number} checkHourFreq - Optional frequency to check session status (default is 1).
+ * @param {number} timeoutLength - Session length, interpreted based on `unit`.
+ * @param {string} [unit='hours'] - The unit of `timeoutLength`, either 'hours' or 'minutes'.
  * @returns {Object} - Success status and optional message on failure.
+ * 
+ * Examples:
+ * - `timeoutLength = 1, unit = 'hours'` means 1 hour.
+ * - `timeoutLength = 15, unit = 'minutes'` means 15 minutes.
+ * 
+ * Notes on allowed values:
+ * - If `unit` is 'hours', `timeoutLength` must be a positive whole number (e.g., 1, 2, etc.).
+ * - If `unit` is 'minutes', `timeoutLength` must be one of the following intervals:
+ *     - 1, 5, 10, 15, or 30 minutes (these are the only intervals Google Apps Script supports for time-based triggers).
  */
-function login(email, password, timeoutLength = 1, checkHourFreq = 1) {
+function login(email, password, timeoutLength = 1, unit = 'hours') {
     const loginUrl = "https://api.servicetrade.com/api/auth";
     const payload = { username: email, password: password };
 
+    // Guard clause: Validate timeoutLength based on unit
+    const allowedMinuteIntervals = [1, 5, 10, 15, 30];
+    if (unit === 'hours') {
+        if (!Number.isInteger(timeoutLength) || timeoutLength < 1) {
+            throw new Error("Invalid timeout length for hours. Use a whole number (e.g., 1, 2, etc.)");
+        }
+    } else if (unit === 'minutes') {
+        if (!allowedMinuteIntervals.includes(timeoutLength)) {
+            throw new Error(`Invalid timeout length for minutes. Use one of the following values: ${allowedMinuteIntervals.join(', ')}`);
+        }
+    } else {
+        throw new Error("Invalid unit provided. Use 'hours' or 'minutes'.");
+    }
+
+    // Proceed with login request
     const options = {
         method: "post",
         contentType: "application/json",
@@ -23,17 +49,21 @@ function login(email, password, timeoutLength = 1, checkHourFreq = 1) {
 
     const response = UrlFetchApp.fetch(loginUrl, options);
 
-    if (response.getResponseCode() === 200) {
-        const sessionCookies = response.getAllHeaders()['Set-Cookie'];
-        const scriptProps = PropertiesService.getScriptProperties();
-        scriptProps.setProperty("SESSION_COOKIES", sessionCookies);
-        _setSessionTimeout(timeoutLength);
-        _createSessionCheckTrigger(checkHourFreq);
-        return { success: true };
-    } else {
+    if (response.getResponseCode() !== 200) {
         return { success: false, message: "Invalid login credentials" };
     }
+
+    // Store session cookies and set timeout and trigger based on unit
+    const sessionCookies = response.getAllHeaders()['Set-Cookie'];
+    const scriptProps = PropertiesService.getScriptProperties();
+    scriptProps.setProperty("SESSION_COOKIES", sessionCookies);
+
+    _setSessionTimeout(timeoutLength, unit);
+    _createSessionCheckTrigger(timeoutLength, unit);
+
+    return { success: true };
 }
+
 
 
 /**
@@ -91,14 +121,28 @@ STLIB.internalTriggerForSessionCheck = internalTriggerForSessionCheck;
 
 
 /**
-* Sets session expiration.
-* @private
-* @param {number} timeoutLength - Length of the session in hours.
-*/
-function _setSessionTimeout(timeoutLength) {
+ * Sets session expiration based on specified duration.
+ * @private
+ * @param {number} timeoutLength - Length of the session.
+ * @param {string} unit - Unit for the timeout ('minutes' or 'hours').
+ */
+function _setSessionTimeout(timeoutLength, unit) {
     const scriptProps = PropertiesService.getScriptProperties();
     const expiration = new Date();
-    expiration.setMinutes(expiration.getMinutes() + timeoutLength * 60);
+
+    if (unit !== 'minutes' && unit !== 'hours') {
+        throw new Error("Invalid unit provided. Use 'minutes' or 'hours'.");
+    }
+
+    if (unit === 'minutes') {
+        expiration.setMinutes(expiration.getMinutes() + timeoutLength);
+    }
+
+    if (unit === 'hours') {
+        const minutesToAdd = timeoutLength * 60;
+        expiration.setMinutes(expiration.getMinutes() + minutesToAdd);
+    }
+
     scriptProps.setProperty("SESSION_EXPIRATION", expiration.toISOString());
 }
 
@@ -107,18 +151,45 @@ function _setSessionTimeout(timeoutLength) {
 
 /**
  * Creates a time-based trigger to periodically check the session.
- * Ensures there are no duplicate triggers for the session check function.
  * @private
- * @param {number} checkHourFreq - Frequency in hours for session status check.
+ * @param {number} frequency - Frequency of the session status check.
+ * @param {string} unit - Unit for the frequency ('minutes' or 'hours').
  */
-function _createSessionCheckTrigger(checkHourFreq) {
+function _createSessionCheckTrigger(frequency, unit) {
     _deleteExistingTriggers("librarySessionCheckTrigger");
 
-    ScriptApp.newTrigger("librarySessionCheckTrigger")
-        .timeBased()
-        .everyMinutes(checkHourFreq)
-        .create();
+    const trigger = ScriptApp.newTrigger("librarySessionCheckTrigger").timeBased();
+
+    if (unit === 'minutes') {
+        // Choose closest allowable minute interval
+        if (frequency <= 1) {
+            trigger.everyMinutes(1);
+        }
+
+        if (frequency > 1 && frequency <= 5) {
+            trigger.everyMinutes(5);
+        }
+
+        if (frequency > 5 && frequency <= 10) {
+            trigger.everyMinutes(10);
+        }
+
+        if (frequency > 10 && frequency <= 15) {
+            trigger.everyMinutes(15);
+        }
+
+        if (frequency > 15) {
+            trigger.everyMinutes(30); // Default to 30 if higher than available intervals
+        }
+    }
+
+    if (unit === 'hours') {
+        trigger.everyHours(frequency);
+    }
+
+    trigger.create();
 }
+
 
 /**
  * Deletes all existing triggers for a specified function name.
