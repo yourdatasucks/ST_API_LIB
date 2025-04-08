@@ -10,11 +10,13 @@
   - [login](#login)
   - [logout](#logout)
   - [getCompanies](#getcompanies)
+  - [getUsers](#getusers)
+  - [userValue](#uservalue)
 - [Private Functions](#private-functions)
 - [License](#license)
 ## Create the Library
 
-To install this library, start by creating a Google Apps Script project and adding these files. If you’re using `clasp`, this process will be easier and quicker. Note that this library requires permissions for `UrlFetchApp` and `PropertiesService` in Google Apps Script.
+To install this library, start by creating a Google Apps Script project and adding these files. If you're using `clasp`, this process will be easier and quicker. Note that this library requires permissions for `UrlFetchApp` and `PropertiesService` in Google Apps Script.
 
 ## Adding the Library to Your Project
 
@@ -29,15 +31,11 @@ Once you have saved the initial library project, make a note of its unique **Scr
    - Click **Add**.
 
 3. **Set Version and Identifier**:
-   - After adding the library, you’ll see a dropdown menu to select the **version**. Choose the version you want to use (typically the latest).
+   - After adding the library, you'll see a dropdown menu to select the **version**. Choose the version you want to use (typically the latest).
    - Optionally, change the **Identifier** (default is `STLIB`), but we will keep it as `STLIB` for this guide.
    - Click **Save**.
 
 Your library is now available in the new project! You can call library functions using the `STLIB` identifier, such as `STLIB.login(...)`.
-
-
-
-
 
 ## Usage
 ### Initial Setup
@@ -106,6 +104,56 @@ function librarySessionCheckTrigger() {
   } else {
     Logger.log(companies.message);
   }
+### getUsers
+- **Description**: Retrieves a filtered list of users from ServiceTrade.
+- **Parameters**:
+  - `options` (object, optional): An object containing filtering options. The following properties are available:
+    - **name** (string, optional): User name includes this string (case insensitive).
+    - **email** (string, optional): User email includes this string (case insensitive).
+    - **phone** (string, optional): User phone number includes this string.
+    - **status** (string, optional, default `'active'`): User status; options include `'active'` or `'inactive'`.
+    - **role** (string, optional): User role; options include `'admin'`, `'manager'`, `'technician'`, `'sales'`, or `'office'`.
+    - **officeId** (string, optional): Comma-separated list of office IDs; returns users assigned to these offices.
+    - **createdBefore** (number, optional): Filters for users created on or before this date (timestamp).
+    - **createdAfter** (number, optional): Filters for users created on or after this date (timestamp).
+    - **updatedBefore** (number, optional): Filters for users updated on or before this date (timestamp).
+    - **updatedAfter** (number, optional): Filters for users updated on or after this date (timestamp).
+- **Returns**: `{ success: boolean, data: object }` where `data` includes `totalPages`, `page`, and `users`.
+- **Example**:
+  ```javascript
+  const users = getUsers({ status: "active", role: "technician" });
+  if (users.success) {
+    Logger.log(users.data.users);
+  } else {
+    Logger.log(users.message);
+  }
+### userValue
+- **Description**: Retrieves or manages user values from ServiceTrade.
+- **Parameters**:
+  - `options` (object): An object containing the following properties:
+    - **id** or **userId** (number, optional): The ID of the user to get/set values for. If not provided, returns values for the authenticated user.
+    - **key** (string, optional): The key of the user value to retrieve or set.
+    - **value** (string, optional): The value to set (only used with POST/PUT methods).
+    - **method** (string, optional, default `'GET'`): The HTTP method to use (`'GET'`, `'POST'`, `'PUT'`, `'DELETE'`).
+- **Returns**: `{ success: boolean, data: object }` where `data` contains the user value information.
+- **Example**:
+  ```javascript
+  // Get all values for a specific user
+  const userValues = userValue({ id: 123, method: 'GET' });
+  
+  // Get a specific value for a user
+  const specificValue = userValue({ id: 123, key: 'preference', method: 'GET' });
+  
+  // Set a value for a user
+  const setValue = userValue({ id: 123, key: 'preference', value: 'newValue', method: 'POST' });
+  
+  // Update a value for a user
+  const updateValue = userValue({ id: 123, key: 'preference', value: 'updatedValue', method: 'PUT' });
+  
+  // Delete a value for a user
+  const deleteValue = userValue({ id: 123, key: 'preference', method: 'DELETE' });
+  ```
+
 ## Private Functions
 Private functions are prefixed with an underscore `_` and are intended for internal use. These include:
 
