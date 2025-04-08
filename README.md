@@ -141,17 +141,31 @@ function librarySessionCheckTrigger() {
   // Get all values for a specific user
   const userValues = userValue({ id: 123, method: 'GET' });
   
-  // Get a specific value for a user
-  const specificValue = userValue({ id: 123, key: 'preference', method: 'GET' });
+  // Get a specific value for a user (e.g., their default view setting)
+  const defaultView = userValue({ id: 123, key: 'defaultView', method: 'GET' });
   
-  // Set a value for a user
-  const setValue = userValue({ id: 123, key: 'preference', value: 'newValue', method: 'POST' });
+  // Set a value for a user (e.g., their notification preferences)
+  const notificationSettings = userValue({ 
+    id: 123, 
+    key: 'notificationSettings', 
+    value: '{"email": true, "sms": false}', 
+    method: 'POST' 
+  });
   
-  // Update a value for a user
-  const updateValue = userValue({ id: 123, key: 'preference', value: 'updatedValue', method: 'PUT' });
+  // Update a value for a user (e.g., their timezone setting)
+  const timezone = userValue({ 
+    id: 123, 
+    key: 'timezone', 
+    value: 'America/New_York', 
+    method: 'PUT' 
+  });
   
-  // Delete a value for a user
-  const deleteValue = userValue({ id: 123, key: 'preference', method: 'DELETE' });
+  // Delete a value for a user (e.g., removing a custom setting)
+  const deleteValue = userValue({ 
+    id: 123, 
+    key: 'customDashboard', 
+    method: 'DELETE' 
+  });
   ```
 
 ## Private Functions
